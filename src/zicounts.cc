@@ -2,7 +2,7 @@
 double digamma(double*);
 
 extern "C"{ 
-void PoisNLL(double* p, double* y, double* ofs,double* x,int* nrowx, int* ncolx, double* nll)
+void PoisNLL(double* p, double* y, double* ee,double* x,int* nrowx, int* ncolx, double* nll)
 {
 // negative log-likelihood of poisson model
 	int i, j,  ncol = *ncolx, n=*nrowx;
@@ -12,7 +12,7 @@ void PoisNLL(double* p, double* y, double* ofs,double* x,int* nrowx, int* ncolx,
 	{
 	loglambda =0;
 	 for(j=0; j<ncol;j++) loglambda += x[i + j*n]*p[j];
-	 	 lambda = exp(loglambda)*ofs[i];
+	 	 lambda = exp(loglambda)*ee[i];
 	 	 loglambda = log(lambda);
 
 		neglik += lambda - y[i]*loglambda + lgamma(y[i] +1);
@@ -21,7 +21,7 @@ void PoisNLL(double* p, double* y, double* ofs,double* x,int* nrowx, int* ncolx,
 }
 
 
-void ZipNLL(double* p, double* y, double* ofs, double* x, int* nrowx, int* ncolx,
+void ZipNLL(double* p, double* y, double* ee, double* x, int* nrowx, int* ncolx,
             double* z, int* nrowz, int* ncolz,double* nll)
 {
 // negative log-likelihood of zero-inflated Poisson
@@ -34,8 +34,8 @@ void ZipNLL(double* p, double* y, double* ofs, double* x, int* nrowx, int* ncolx
 	loglambda =0;
 	logitp = 0;
 	 for(j=0; j<colx;j++) loglambda += x[i + j*n]*p[j];
-	 for(k=0; k<colz;k++) logitp    += z[i + k*n]*p[colz + k];
-	 lambda = exp(loglambda)*ofs[i];
+	 for(k=0; k<colz;k++) logitp    += z[i + k*n]*p[colx + k];
+	 lambda = exp(loglambda)*ee[i];
 	 loglambda = log(lambda);
 	 pp = 1/(1+exp(-logitp));
 	 if(y[i]==0)
@@ -46,7 +46,7 @@ void ZipNLL(double* p, double* y, double* ofs, double* x, int* nrowx, int* ncolx
 	*nll = neglik;
 }
 
-void NegbinNLL(double* p, double* y, double* ofs, double* x, int* nrowx, int* ncolx, double* nll)
+void NegbinNLL(double* p, double* y, double* ee, double* x, int* nrowx, int* ncolx, double* nll)
 {
 // negative log-likelihood of negative binomial
 	int i, j,  ncol = *ncolx, n=*nrowx;
@@ -58,7 +58,7 @@ void NegbinNLL(double* p, double* y, double* ofs, double* x, int* nrowx, int* nc
 	{
 	loglambda =0;
 	 for(j=0; j<ncol;j++) loglambda += x[i + j*n]*p[j];
-	 lambda = exp(loglambda)*ofs[i];
+	 lambda = exp(loglambda)*ee[i];
 	 loglambda = log(lambda);
 		neglik += lgamma(y[i]+1) + lgamma(tau) - lgamma(tau + y[i]) -
 		tau * log(tau/(tau + lambda)) - y[i]* log(lambda/(tau + lambda));
@@ -67,7 +67,7 @@ void NegbinNLL(double* p, double* y, double* ofs, double* x, int* nrowx, int* nc
 }
 
 
-void ZinbNLL(double* p, double* y, double* ofs, double* x, int* nrowx, int* ncolx,
+void ZinbNLL(double* p, double* y, double* ee, double* x, int* nrowx, int* ncolx,
             double* z, int* nrowz, int* ncolz,double* nll)
 {
 // negative log-likelihood of zero-inflated negative binomial
@@ -82,8 +82,8 @@ void ZinbNLL(double* p, double* y, double* ofs, double* x, int* nrowx, int* ncol
 	loglambda =0;
 	logitp = 0;
 	 for(j=0; j<colx;j++) loglambda += x[i + j*n]*p[j];
-	 for(k=0; k<colz;k++) logitp    += z[i + k*n]*p[colz + k];
-	 lambda = exp(loglambda)*ofs[i];
+	 for(k=0; k<colz;k++) logitp    += z[i + k*n]*p[colx + k];
+	 lambda = exp(loglambda)*ee[i];
 	 loglambda = log(lambda);
 	 pp = 1/(1+exp(-logitp));
 	 if(y[i]==0)
@@ -188,7 +188,7 @@ void CensZip(double* p, double* y, double* r, double* x, int* nrowx, int* ncolx,
 	logitp = 0;
 	lik = 0;
 	 for(j=0; j<colx;j++) loglambda += x[i + j*n]*p[j];
-	 for(k=0; k<colz;k++) logitp    += z[i + k*n]*p[colz + k];
+	 for(k=0; k<colz;k++) logitp    += z[i + k*n]*p[colx + k];
 	 lambda = exp(loglambda);
 	 pp = 1/(1+exp(-logitp));
 	 for(yt=y[i]; yt<=r[i]; yt++)
@@ -239,7 +239,7 @@ void EZinb(double* p, double* y, double* r,double* x, int* nrowx, int* ncolx,
      }
   }
 
-void PoisGrad(double* p, double* y, double* ofs, double* x, int* nrowx, int* ncolx,double* grad)
+void PoisGrad(double* p, double* y, double* ee, double* x, int* nrowx, int* ncolx,double* grad)
 {
 // first derivative: negative log-likelihood of censored zero-inflated negative binomial
 	int i,j, n=*nrowx, colx = *ncolx;
@@ -252,7 +252,7 @@ void PoisGrad(double* p, double* y, double* ofs, double* x, int* nrowx, int* nco
 	loglambda =0;
 	
 	 for(j=0; j<colx;j++) loglambda += x[i + j*n]*p[j];
-	 lambda = exp(loglambda)*ofs[i];
+	 lambda = exp(loglambda)*ee[i];
 	 loglambda = log(lambda);
 	    	 for(j=0; j<colx;j++)
 	    	 grad[j]         += x[i + j*n]*(lambda-y[i]);
@@ -260,7 +260,7 @@ void PoisGrad(double* p, double* y, double* ofs, double* x, int* nrowx, int* nco
    
 }
  
-void ZipGrad(double* p, double* y, double* ofs, double* x, int* nrowx, int* ncolx,
+void ZipGrad(double* p, double* y, double* ee, double* x, int* nrowx, int* ncolx,
             double* z, int* nrowz, int* ncolz,double* grad)
 {
 // first derivative: negative log-likelihood of censored zero-inflated negative binomial
@@ -277,8 +277,8 @@ void ZipGrad(double* p, double* y, double* ofs, double* x, int* nrowx, int* ncol
 	loglambda =0;
 	logitp = 0;
 	 for(j=0; j<colx;j++) loglambda += x[i + j*n]*p[j];
-	 for(k=0; k<colz;k++) logitp    += z[i + k*n]*p[colz + k];
-	 lambda = exp(loglambda)*ofs[i];
+	 for(k=0; k<colz;k++) logitp    += z[i + k*n]*p[colx + k];
+	 lambda = exp(loglambda)*ee[i];
 	 loglambda = log(lambda);
 
 	 eG = exp(logitp);
@@ -303,7 +303,7 @@ void ZipGrad(double* p, double* y, double* ofs, double* x, int* nrowx, int* ncol
 }
  
 
-void NegbinGrad(double* p, double* y, double* ofs, double* x, int* nrowx, int* ncolx, double* grad)
+void NegbinGrad(double* p, double* y, double* ee, double* x, int* nrowx, int* ncolx, double* grad)
 {
 // first derivative: negative log-likelihood of censored zero-inflated negative binomial
 	int i,j, n=*nrowx, colx = *ncolx;
@@ -316,7 +316,7 @@ void NegbinGrad(double* p, double* y, double* ofs, double* x, int* nrowx, int* n
 	{
 	loglambda =0;
 	 for(j=0; j<colx;j++) loglambda += x[i + j*n]*p[j];
-	 lambda = exp(loglambda)*ofs[i];
+	 lambda = exp(loglambda)*ee[i];
 	 loglambda = log(lambda);
 	    	 for(j=0; j<colx;j++)
 	    	 //grad[j]         += x[i + j*n]*(1-(tau + y[i])/(lambda + tau))*tau;
@@ -331,7 +331,7 @@ void NegbinGrad(double* p, double* y, double* ofs, double* x, int* nrowx, int* n
 
 
 
-void ZinbGrad(double* p, double* y, double* ofs, double* x, int* nrowx, int* ncolx,
+void ZinbGrad(double* p, double* y, double* ee, double* x, int* nrowx, int* ncolx,
             double* z, int* nrowz, int* ncolz,double* grad)
 {
 // first derivative: negative log-likelihood of censored zero-inflated negative binomial
@@ -350,8 +350,8 @@ void ZinbGrad(double* p, double* y, double* ofs, double* x, int* nrowx, int* nco
 	loglambda =0;
 	logitp = 0;
 	 for(j=0; j<colx;j++) loglambda += x[i + j*n]*p[j];
-	 for(k=0; k<colz;k++) logitp    += z[i + k*n]*p[colz + k];
-	 lambda = exp(loglambda)*ofs[i];
+	 for(k=0; k<colz;k++) logitp    += z[i + k*n]*p[colx + k];
+	 lambda = exp(loglambda)*ee[i];
 	 loglambda = log(lambda);
 	 eG = exp(logitp);
          pp = 1/(1+ exp(-logitp));
@@ -431,7 +431,7 @@ void CensZipGrad(double* p, double* y, double* r,double* x, int* nrowx, int* nco
     logitp = 0;
 
      for(j=0; j<colx;j++) loglambda += x[i + j*n]*p[j];
-     for(k=0; k<colz;k++) logitp    += z[i + k*n]*p[colz + k];
+     for(k=0; k<colz;k++) logitp    += z[i + k*n]*p[colx + k];
      lambda = exp(loglambda);
      eG = exp(logitp);
          pp = 1/(1+ exp(-logitp));
@@ -532,7 +532,7 @@ void CensZinbGrad(double* p, double* y, double* r,double* x, int* nrowx, int* nc
     loglambda =0;
     logitp = 0;
      for(j=0; j<colx;j++) loglambda += x[i + j*n]*p[j];
-     for(k=0; k<colz;k++) logitp    += z[i + k*n]*p[colz + k];
+     for(k=0; k<colz;k++) logitp    += z[i + k*n]*p[colx + k];
      lambda = exp(loglambda);
      eG = exp(logitp);
          pp = 1/(1+ exp(-logitp));
