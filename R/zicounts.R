@@ -3,15 +3,16 @@
 #        Classical and Zero-inflated Models for Count Data  Regression model       
 #------------------------------------------------------------------------------------
 zicounts <- function(parm = NULL, resp = y ~ ., x =  ~ 1, z =  ~ 1, data, distrname = 
-	"ZINB", sub = NULL, ntries = 5, method = "BFGS", ...)
+	"ZINB", offset=NULL,sub = NULL, ntries = 5, method = "BFGS", ...)
 {
 	# -log(likelihood)               
 	if(distrname == "Poisson") {
-		neg.like <- function(p, y, xx, ...)
+		neg.like <- function(p, y,ee,xx, ...)
 		{
 			.C("PoisNLL",
 				as.double(p),
 				as.double(y),
+				as.double(ee),
 				as.double(xx),
 				as.integer(nrow(xx)),
 				as.integer(ncol(xx)),
@@ -20,11 +21,12 @@ zicounts <- function(parm = NULL, resp = y ~ ., x =  ~ 1, z =  ~ 1, data, distrn
 		}
 	}
 	else if(distrname == "ZIP") {
-		neg.like <- function(p, y, xx, zz, ...)
+		neg.like <- function(p, y,ee,xx, zz, ...)
 		{
 			.C("ZipNLL",
 				as.double(p),
 				as.double(y),
+				as.double(ee),
 				as.double(xx),
 				as.integer(nrow(xx)),
 				as.integer(ncol(xx)),
@@ -36,11 +38,12 @@ zicounts <- function(parm = NULL, resp = y ~ ., x =  ~ 1, z =  ~ 1, data, distrn
 		}
 	}
 	else if(distrname == "NB") {
-		neg.like <- function(p, y, xx, ...)
+		neg.like <- function(p, y,ee,xx, ...)
 		{
 			.C("NegbinNLL",
 				as.double(p),
 				as.double(y),
+				as.double(ee),
 				as.double(xx),
 				as.integer(nrow(xx)),
 				as.integer(ncol(xx)),
@@ -49,11 +52,12 @@ zicounts <- function(parm = NULL, resp = y ~ ., x =  ~ 1, z =  ~ 1, data, distrn
 		}
 	}
 	else if(distrname == "ZINB") {
-		neg.like <- function(p, y, xx, zz, ...)
+		neg.like <- function(p, y,ee,xx, zz, ...)
 		{
 			.C("ZinbNLL",
 				as.double(p),
 				as.double(y),
+				as.double(ee),
 				as.double(xx),
 				as.integer(nrow(xx)),
 				as.integer(ncol(xx)),
@@ -65,11 +69,12 @@ zicounts <- function(parm = NULL, resp = y ~ ., x =  ~ 1, z =  ~ 1, data, distrn
 		}
 	}
 	if(distrname == "Poisson") {
-		neg.grad <- function(p, y, xx, ...)
+		neg.grad <- function(p, y,ee,xx, ...)
 		{
 			.C("PoisGrad",
 				as.double(p),
 				as.double(y),
+				as.double(ee),
 				as.double(xx),
 				as.integer(nrow(xx)),
 				as.integer(ncol(xx)),
@@ -78,11 +83,12 @@ zicounts <- function(parm = NULL, resp = y ~ ., x =  ~ 1, z =  ~ 1, data, distrn
 		}
 	}
 	else if(distrname == "ZIP") {
-		neg.grad <- function(p, y, xx, zz, ...)
+		neg.grad <- function(p, y,ee,xx, zz, ...)
 		{
 			.C("ZipGrad",
 				as.double(p),
 				as.double(y),
+				as.double(ee),
 				as.double(xx),
 				as.integer(nrow(xx)),
 				as.integer(ncol(xx)),
@@ -94,11 +100,12 @@ zicounts <- function(parm = NULL, resp = y ~ ., x =  ~ 1, z =  ~ 1, data, distrn
 		}
 	}
 	else if(distrname == "NB") {
-		neg.grad <- function(p, y, xx, ...)
+		neg.grad <- function(p, y,ee,xx, ...)
 		{
 			.C("NegbinGrad",
 				as.double(p),
 				as.double(y),
+				as.double(ee),
 				as.double(xx),
 				as.integer(nrow(xx)),
 				as.integer(ncol(xx)),
@@ -107,11 +114,12 @@ zicounts <- function(parm = NULL, resp = y ~ ., x =  ~ 1, z =  ~ 1, data, distrn
 		}
 	}
 	else if(distrname == "ZINB") {
-		neg.grad <- function(p, y, xx, zz, ...)
+		neg.grad <- function(p, y,ee,xx, zz, ...)
 		{
 			.C("ZinbGrad",
 				as.double(p),
 				as.double(y),
+				as.double(ee),
 				as.double(xx),
 				as.integer(nrow(xx)),
 				as.integer(ncol(xx)),
@@ -128,6 +136,13 @@ zicounts <- function(parm = NULL, resp = y ~ ., x =  ~ 1, z =  ~ 1, data, distrn
 	xx <- model.matrix(x, datset)
 	zz <- model.matrix(z, datset)
 	y <- as.matrix(model.response(model.frame(resp, datset)))
+
+
+	if(!is.null(offset))
+	  ee <- exp(model.matrix( ~ eval(offset) - 1, datset)) 
+	else   ee <- matrix(1,nrow=dim(xx)[1])
+         
+        
 	size <- nrow(xx)
 	# if parm not given estimate the initial value
 	if(is.null(parm)) {
@@ -185,15 +200,19 @@ zicounts <- function(parm = NULL, resp = y ~ ., x =  ~ 1, z =  ~ 1, data, distrn
 			stop("Error in 'parm': more starting values specified")
 	}
 	z0 <- optim(par = parm, fn = neg.like, gr = neg.grad, hessian = TRUE, method = method,
-		control = list(maxit = 250), y = y, xx = xx, zz = zz)
+		control = list(maxit = 250), y = y, xx = xx, zz = zz, ee=ee)
 	t <- 1
 	while(z0$conv != 0) {
 		z0 <- optim(z0$par, fn = neg.like, gr = neg.grad, hessian = TRUE, method = 
-			method, control = list(maxit = 250), y = y, xx = xx, zz = zz)
+			method, control = list(maxit = 250), y = y, xx = xx, zz = zz,ee=ee)
 		t <- t + 1
 		if(t == ntries)
 			break
 	}
+	if(!is.null(offset))
+	   llac <- paste(llac,"(with offest)")
+	else   llac <- llac
+	
 	cov <- solve(z0$hessian)
 	se <- sqrt(diag(cov))
 	names(se) <- pnames

@@ -9,7 +9,7 @@
 }
 \usage{
 zicountsparm = NULL, resp = y ~ ., x =  ~ 1, z =  ~ 1, data, distrname = 
-	"ZINB", sub = NULL, ntries = 5, method = "BFGS", ...)
+	"ZINB", offset=NULL, sub = NULL, ntries = 5, method = "BFGS", ...)
 }
 
 \arguments{
@@ -30,6 +30,9 @@ zicountsparm = NULL, resp = y ~ ., x =  ~ 1, z =  ~ 1, data, distrname =
     ZINB (number of x  and z variables +1). If not specificied then the starting
     values are estimated from the data. It is advisable to use the default values.}
    \item{data}{a frame containing the variables in the model.}
+   \item{offset}{offset variable. This should be specified in the form: e.g.
+   	offset = expression(log(expected)).}
+
    \item{sub}{an optional logical expression specifying a subset of observations to be
            used in the fitting process. This should be specified in the form: e.g. 
            subsets =expression(w==0).}
@@ -100,9 +103,18 @@ pois.zc2 # starting values estimated from data
 pois.glm <- glm(dmft~gender + age, family=poisson,data=teeth)
 pois.glm
 
-# fit for girls only -- using 'sub'
-pois.girl <- zicounts(resp = dmft~.,x =~age, data=teeth, distr = "Poisson",sub=expression(gender==1))
+# fit for boys only -- using 'sub'
+pois.girl <- zicounts(resp = dmft~.,x =~age, data=teeth, distr = "Poisson",sub=expression(gender==0))
 pois.girl # starting values estimated from data
+
+# Poisson with offset
+pois.zc3 <- zicounts(resp = dmft~.,x =~gender + age, offset= expression(log(decid + 1)), data=teeth, distr = "Poisson")
+pois.zc3
+
+# compare with glm
+pois.glm2 <- glm(dmft~gender + age, offset= log(decid + 1), family=poisson,data=teeth)
+pois.glm2  
+
 
 ## b) fit zero-inflated  Poisson regression model
 zip.zc <- zicounts(resp = dmft~.,x =~gender + age,z =~gender + age, data=teeth, distr = "ZIP")
