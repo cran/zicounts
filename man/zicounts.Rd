@@ -8,7 +8,7 @@
     Type help(zicensor) for interval censored models.
 }
 \usage{
-zicountsparm = NULL, resp = y ~ ., x =  ~ 1, z =  ~ 1, data, distrname = 
+zicounts(parm = NULL, resp = y ~ ., x =  ~ 1, z =  ~ 1, data, distrname = 
     "ZINB", offset=NULL, sub = NULL, ntries = 5, method = "BFGS", ...)
 }
 
@@ -41,6 +41,7 @@ zicountsparm = NULL, resp = y ~ ., x =  ~ 1, z =  ~ 1, data, distrname =
            For other method see optim() function in R.}
     \item{ntries}{The number of times the optimization may be repeated till convergence.
     The default value is 5. Normally this is performed once.} 
+    \item{...}{other options to optim function.} 
 }
 \value{
  \item{coefficients}{The best set of parameters found. Subscript x and z respectively
