@@ -1,0 +1,3 @@
+zicensor                  Censored classical and zero-inflated count data regression model
+zicounts                  Classical and Zero inflated  count data regression model
+ezinb                     Computes the expected value of zero-inflated negative binomial
